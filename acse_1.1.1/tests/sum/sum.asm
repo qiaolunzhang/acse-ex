@@ -1,0 +1,14 @@
+	.data
+L0 : 	.WORD 0
+L1 : 	.WORD 0
+L2 : 	.WORD 0
+	.text
+	READ R1 0
+	READ R2 0
+	ADD R3 R1 R2
+	STORE R2 L1
+	STORE R1 L0
+	ADD R1 R0 R3
+	WRITE R1 0
+	STORE R1 L2
+	HALT
