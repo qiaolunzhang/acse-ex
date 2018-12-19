@@ -102,8 +102,9 @@ union YYSTYPE
    t_list *list;
    t_axe_label *label;
    t_while_statement while_stmt;
+   t_for_statement for_stmt;
 
-#line 107 "Acse.tab.h" /* yacc.c:1909  */
+#line 108 "Acse.tab.h" /* yacc.c:1909  */
 };
 
 typedef union YYSTYPE YYSTYPE;

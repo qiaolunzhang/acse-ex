@@ -105,6 +105,7 @@ t_io_infos *file_infos;    /* input and output files used by the compiler */
    t_list *list;
    t_axe_label *label;
    t_while_statement while_stmt;
+   t_for_statement for_stmt;
 } 
 /*=========================================================================
                                TOKENS 
@@ -124,6 +125,7 @@ t_io_infos *file_infos;    /* input and output files used by the compiler */
 
 %token <label> DO
 %token <while_stmt> WHILE
+%token <for_stmt> FOR
 %token <label> IF
 %token <label> ELSE
 %token <intval> TYPE
@@ -247,6 +249,7 @@ statement   : assign_statement SEMI      { /* does nothing */ }
 ;
 
 control_statement : if_statement         { /* does nothing */ }
+            | for_statement              { /* does nothing */ }
             | while_statement            { /* does nothing */ }
             | do_while_statement SEMI    { /* does nothing */ }
             | return_statement SEMI      { /* does nothing */ }
@@ -347,6 +350,39 @@ if_stmt  :  IF
                }
                code_block { $$ = $1; }
 ;
+
+assign_list : assign_list COMMA assign_statement
+            | assign_statement
+            ;
+
+for_statement : FOR
+              {
+                $1 = create_for_statement();
+              }
+              LPAR assign_list SEMI {
+                $1.label_exp = assignNewLabel(program);
+              }
+              exp SEMI {
+                if ($7.expression_type == IMMEDIATE)
+                    gen_load_immediate(program, $7.value);
+                else
+                    gen_andb_instruction(program, $7.value,
+                        $7.value, $7.value, CG_DIRECT_ALL);
+                $1.label_end = newLabel(program);
+                gen_beq_instruction(program, $1.label_end, 0);
+                $1.label_code = newLabel(program);
+                gen_bt_instruction(program, $1.label_code, 0);
+                $1.label_epilogue = assignNewLabel(program);
+              }
+              assign_list RPAR {
+                gen_bt_instruction(program, $1.label_exp, 0);
+                assignLabel(program, $1.label_code);
+              }
+              code_block {
+                gen_bt_instruction(program, $1.label_epilogue, 0);
+                assignLabel(program, $1.label_end);
+              }
+
 
 while_statement  : WHILE
                   {

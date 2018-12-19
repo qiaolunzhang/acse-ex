@@ -100,6 +100,16 @@ t_while_statement create_while_statement()
    return statement;
 }
 
+t_for_statement create_for_statement()
+{
+    t_for_statement statement;
+    statement.label_exp = NULL;
+    statement.label_epilogue = NULL;
+    statement.label_code = NULL;
+    statement.label_end = NULL;
+    return statement;
+}
+
 t_axe_label * alloc_label(int value)
 {
    t_axe_label *result;
