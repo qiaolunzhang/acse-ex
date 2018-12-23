@@ -105,6 +105,7 @@ t_io_infos *file_infos;    /* input and output files used by the compiler */
    t_list *list;
    t_axe_label *label;
    t_while_statement while_stmt;
+   t_foreach_statement foreach_stmt;
 } 
 /*=========================================================================
                                TOKENS 
@@ -121,9 +122,12 @@ t_io_infos *file_infos;    /* input and output files used by the compiler */
 %token RETURN
 %token READ
 %token WRITE
+%token IN
+%token EVERY
 
 %token <label> DO
 %token <while_stmt> WHILE
+%token <foreach_stmt> FOREACH
 %token <label> IF
 %token <label> ELSE
 %token <intval> TYPE
@@ -248,6 +252,7 @@ statement   : assign_statement SEMI      { /* does nothing */ }
 
 control_statement : if_statement         { /* does nothing */ }
             | while_statement            { /* does nothing */ }
+            | foreach_statement SEMI     { /* does nothing */ }
             | do_while_statement SEMI    { /* does nothing */ }
             | return_statement SEMI      { /* does nothing */ }
 ;
@@ -347,6 +352,61 @@ if_stmt  :  IF
                }
                code_block { $$ = $1; }
 ;
+
+foreach_statement : FOREACH IDENTIFIER IN IDENTIFIER
+                  {
+                    t_axe_variable *elem = getVariable(program, $2);
+                    t_axe_variable *array = getVariable(program, $4);
+                    if (elem->isArray || !(array->isArray)) {
+                        notifyError(AXE_INVALID_VARIABLE);
+                    }
+                    /*$1 = (t_foreach_statement*) malloc(sizeof(t_foreach_statement));*/
+                    $1 = create_foreach_statement();
+                    $1.index_register = gen_load_immediate(program, 0);
+                    t_axe_expression index_exp = create_expression($1.index_register, REGISTER);
+                    int value_register = loadArrayElement(program, $4, index_exp);
+                    int location = get_symbol_location(program, $2, 0);
+                    gen_andb_instruction(program, location, value_register, value_register, CG_DIRECT_ALL);
+                    $1.label_normal = assignNewLabel(program);
+                    $1.label_after = newLabel(program);
+                    $1.label_test = newLabel(program);
+                    $1.label_end = newLabel(program);
+                  }
+                  code_block {
+                    gen_bt_instruction(program, $1.label_test, 0);
+                  }
+                  EVERY exp DO {
+                    if ($9.expression_type != IMMEDIATE) {
+                        notifyError(AXE_INVALID_EXPRESSION);
+                    }
+                    t_axe_variable *array = getVariable(program, $4);
+                    if (($9.value <= 1) || ($9.value >= array->arraySize)) {
+                        notifyError(AXE_INVALID_EXPRESSION);
+                    } 
+                    assignLabel(program, $1.label_after);
+                  }
+                  code_block {
+                    assignLabel(program, $1.label_test);
+                    /* check the index */
+                    gen_addi_instruction(program, $1.index_register, $1.index_register, 1);
+                    t_axe_variable *array = getVariable(program, $4);
+                    int tmp_reg = getNewRegister(program);
+                    gen_subi_instruction(program, tmp_reg, $1.index_register, array->arraySize);
+                    gen_beq_instruction(program, $1.label_end, 0);
+                    /* load array element */
+                    t_axe_expression index_exp = create_expression($1.index_register, REGISTER);
+                    int value_register = loadArrayElement(program, $4, index_exp);
+                    int location = get_symbol_location(program, $2, 0);
+                    gen_andb_instruction(program, location, value_register, value_register, CG_DIRECT_ALL);
+                    /* chek jump position */
+                    gen_divi_instruction(program, tmp_reg, $1.index_register, $9.value);
+                    gen_muli_instruction(program, tmp_reg, tmp_reg, $9.value);
+                    gen_sub_instruction(program, tmp_reg, tmp_reg, $1.index_register, CG_DIRECT_ALL);
+                    gen_beq_instruction(program, $1.label_after, 0);
+                    gen_bt_instruction(program, $1.label_normal, 0);
+
+                    assignLabel(program, $1.label_end);
+                  }
 
 while_statement  : WHILE
                   {

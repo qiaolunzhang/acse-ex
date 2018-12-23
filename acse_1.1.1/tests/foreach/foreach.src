@@ -1,0 +1,14 @@
+int elem, v[10], a, b;
+v[1] = 1;
+v[2] = 2;
+v[3] = 3;
+a = 0;
+b = 100;
+
+foreach elem in v {
+    write(a);
+    a = a + elem;
+} every 2 do {
+    write(b);
+    a = elem;
+};
