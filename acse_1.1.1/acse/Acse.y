@@ -39,6 +39,12 @@
 
 
 /* global variables */
+struct exists {
+    int arraySize;
+    char *iden_id;
+    int iden_loc;};
+struct exists exists;
+
 int line_num;        /* this variable will keep track of the
                       * source code line number. Every time that a newline
                       * is encountered while parsing the input file, this
@@ -129,6 +135,7 @@ t_io_infos *file_infos;    /* input and output files used by the compiler */
 %token <intval> TYPE
 %token <svalue> IDENTIFIER
 %token <intval> NUMBER
+%token <label> EXISTS
 
 %type <expr> exp
 %type <decl> declaration
@@ -457,7 +464,10 @@ exp: NUMBER      { $$ = create_expression ($1, IMMEDIATE); }
                      int location;
    
                      /* get the location of the symbol with the given ID */
-                     location = get_symbol_location(program, $1, 0);
+                     if (strcmp($1, exists.iden_id))
+                        location = get_symbol_location(program, $1, 0);
+                     else
+                        location = exists.iden_loc;
                      
                      /* return the register location of IDENTIFIER as
                       * a value for `exp' */
@@ -467,6 +477,10 @@ exp: NUMBER      { $$ = create_expression ($1, IMMEDIATE); }
                      free($1);
    }
    | IDENTIFIER LSQUARE exp RSQUARE {
+                     t_axe_variable *array = getVariable(program, $1);
+                     if (exists.iden_id != NULL) {
+                        exists.arraySize = array->arraySize;
+                     }
                      int reg;
                      
                      /* load the value IDENTIFIER[exp]
@@ -478,6 +492,30 @@ exp: NUMBER      { $$ = create_expression ($1, IMMEDIATE); }
 
                      /* free the memory associated with the IDENTIFIER */
                      free($1);
+   }
+   | EXISTS IDENTIFIER {
+        if (exists.iden_id != NULL) {
+            notifyError(AXE_SYNTAX_ERROR);
+        }
+        exists.iden_id = strdup($2);
+        exists.iden_loc = gen_load_immediate(program, 0);
+        exists.arraySize = 0;
+        $1 = assignNewLabel(program);
+   }
+   LPAR exp RPAR {
+        gen_addi_instruction(program, exists.iden_loc, exists.iden_loc, 1);
+        t_axe_expression index_not_completed = handle_binary_comparison(program, create_expression(exists.iden_loc, REGISTER), create_expression(exists.arraySize, IMMEDIATE), _LT_);
+        t_axe_expression result = handle_binary_comparison(program, create_expression(0, IMMEDIATE), $5, _EQ_);
+        handle_bin_numeric_op(program, index_not_completed, result, ANDB);
+        gen_bne_instruction(program, $1, 0);
+
+        /* result = 0: $5 != 0 */
+        $$ = handle_binary_comparison(program, create_expression(0, IMMEDIATE), result, _EQ_);
+        free(exists.iden_id);
+        exists.iden_id = NULL;
+        exists.iden_loc = 0;
+        exists.arraySize = 0;
+        free($2);
    }
    | NOT_OP NUMBER   {  if ($2 == 0)
                            $$ = create_expression (1, IMMEDIATE);
