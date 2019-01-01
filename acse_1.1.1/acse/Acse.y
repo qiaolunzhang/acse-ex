@@ -151,6 +151,7 @@ t_io_infos *file_infos;    /* input and output files used by the compiler */
 %left MINUS PLUS
 %left MUL_OP DIV_OP
 %right NOT
+%right BIT
 
 /*=========================================================================
                          BISON GRAMMAR
@@ -484,6 +485,22 @@ exp: NUMBER      { $$ = create_expression ($1, IMMEDIATE); }
                         else
                            $$ = create_expression (0, IMMEDIATE);
    }
+   | exp NOT_OP         {
+        int r_reg = gen_load_immediate(program, 1);
+        int i_reg = getNewRegister(program);
+        if ($1.expression_type == IMMEDIATE)
+            gen_addi_instruction(program, i_reg, REG_0, $1.value);
+        else
+            gen_add_instruction(program, i_reg, REG_0, $1.value, CG_DIRECT_ALL);
+        t_axe_label *l_end = newLabel(program);
+        gen_beq_instruction(program, l_end, 0);
+        t_axe_label *l_loop = assignNewLabel(program);
+        gen_mul_instruction(program, r_reg, r_reg, i_reg, CG_DIRECT_ALL);
+        gen_subi_instruction(program, i_reg, i_reg, 1);
+        gen_bgt_instruction(program, l_loop, 0);
+        assignLabel(program, l_end);
+        $$ = create_expression(r_reg, REGISTER);
+   }
    | NOT_OP IDENTIFIER  {
                            int identifier_location;
                            int output_register;
@@ -565,6 +582,38 @@ exp: NUMBER      { $$ = create_expression ($1, IMMEDIATE); }
                                  (program, exp_r0, $2, SUB);
                         }
                      }
+	| BIT IDENTIFIER {
+		t_axe_variable *array = getVariable(program,$2);
+		if (!array->isArray){
+			  $$ = create_expression(get_symbol_location(program, $2, 0), REGISTER);
+		}
+		else{
+			int index_reg = gen_load_immediate(program, array->arraySize-1);
+			t_axe_expression index = create_expression(index_reg, REGISTER);
+
+			handle_binary_comparison(program, index, create_expression(31, IMMEDIATE), _LTEQ_);
+			t_axe_label* l = newLabel(program);
+			gen_bne_instruction(program, l, 0);
+			gen_addi_instruction(program, index_reg, REG_0, 31);
+		
+			assignLabel(program, l);
+			int result_reg = gen_load_immediate(program, 0);
+			t_axe_expression result = create_expression(result_reg, REGISTER);
+
+			t_axe_label* test = assignNewLabel(program);
+			t_axe_label* end = newLabel(program);
+			handle_binary_comparison(program, index, create_expression(0, IMMEDIATE), _LT_);
+			gen_bne_instruction(program, end, 0);
+			gen_shli_instruction(program, result_reg, result_reg, 1);
+			int v = loadArrayElement(program, $2, index);
+			t_axe_expression cmp = handle_binary_comparison(program, create_expression(v, REGISTER), create_expression(0, IMMEDIATE), _NOTEQ_);
+			gen_orb_instruction(program, result_reg, result_reg, cmp.value, CG_DIRECT_ALL);		
+			gen_subi_instruction(program, index_reg, index_reg, 1);
+			gen_bt_instruction(program, test, 0);
+			assignLabel(program, end);
+			$$ = result;
+		}
+	}
 ;
 
 %%
