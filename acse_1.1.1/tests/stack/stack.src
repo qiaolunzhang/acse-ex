@@ -1,0 +1,13 @@
+int v[5];
+int x;
+
+push 1 into v;
+push 2 into v;
+push 3 into v;
+push 4 into v;
+push 5 into v;
+push 6 into v;
+pop x from v;
+write(x);
+pop x from v;
+write(x);

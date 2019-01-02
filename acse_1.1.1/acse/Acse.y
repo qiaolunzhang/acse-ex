@@ -89,6 +89,13 @@ t_reg_allocator *RA;       /* Register allocator. It implements the "Linear scan
 
 t_io_infos *file_infos;    /* input and output files used by the compiler */
 
+struct t_stack {
+    char* id;
+    int index_reg;
+} stack = {NULL, 0};
+
+
+
 %}
 
 %expect 1
@@ -121,6 +128,8 @@ t_io_infos *file_infos;    /* input and output files used by the compiler */
 %token RETURN
 %token READ
 %token WRITE
+%token PUSH POP FROM INTO
+%token ISEMPTY ISFULL
 
 %token <label> DO
 %token <while_stmt> WHILE
@@ -151,6 +160,7 @@ t_io_infos *file_infos;    /* input and output files used by the compiler */
 %left MINUS PLUS
 %left MUL_OP DIV_OP
 %right NOT
+%right ISEMPTY ISFULL
 
 /*=========================================================================
                          BISON GRAMMAR
@@ -244,7 +254,11 @@ statement   : assign_statement SEMI      { /* does nothing */ }
             | control_statement          { /* does nothing */ }
             | read_write_statement SEMI  { /* does nothing */ }
             | SEMI            { gen_nop_instruction(program); }
+            | stack_statement {}
 ;
+
+stack_statement : pop_statement {}
+                | push_statement {}
 
 control_statement : if_statement         { /* does nothing */ }
             | while_statement            { /* does nothing */ }
@@ -255,6 +269,57 @@ control_statement : if_statement         { /* does nothing */ }
 read_write_statement : read_statement  { /* does nothing */ }
                      | write_statement { /* does nothing */ }
 ;
+
+push_statement : PUSH exp INTO IDENTIFIER
+               {
+                t_axe_variable *array = getVariable(program,$4);
+                if (!array->isArray)
+                    notifyError(AXE_SYNTAX_ERROR);
+                if (stack.id == NULL) {
+                    stack.id = strdup($4);
+                    stack.index_reg = gen_load_immediate(program, 0);
+                }
+                if (strcmp(stack.id, $4))
+                    notifyError(AXE_SYNTAX_ERROR);
+                else {
+                    t_axe_label *l_end = newLabel(program);
+                    int tmp_reg = getNewRegister(program);
+                    gen_subi_instruction(program, tmp_reg, stack.index_reg, array->arraySize);
+                    gen_beq_instruction(program, l_end, 0);
+                    storeArrayElement(program, $4, create_expression(stack.index_reg, REGISTER), $2);
+                    gen_addi_instruction(program, stack.index_reg, stack.index_reg, 1);
+                    assignLabel(program, l_end);
+                }
+                free($4);
+               }
+
+pop_statement : POP IDENTIFIER FROM IDENTIFIER
+              {
+                t_axe_variable *array = getVariable(program, $4);
+                if (!array->isArray) {
+                    notifyError(AXE_SYNTAX_ERROR);
+                }
+                if (stack.id == NULL) {
+                    stack.id = strdup($4);
+                    stack.index_reg = gen_load_immediate(program, 0);
+                }
+                if (strcmp(stack.id, $4)) {
+                    notifyError(AXE_SYNTAX_ERROR);
+                } else {
+                    t_axe_label *l_end = newLabel(program);
+                    int tmp_reg = getNewRegister(program);
+                    gen_subi_instruction(program, tmp_reg, stack.index_reg, 0);
+                    gen_beq_instruction(program, l_end, 0);
+                    gen_subi_instruction(program, tmp_reg, stack.index_reg, 1);
+                    tmp_reg = loadArrayElement(program, $4, create_expression(tmp_reg, REGISTER));
+                    int location = get_symbol_location(program, $2, 0);
+                    gen_add_instruction(program, location, REG_0, tmp_reg, CG_DIRECT_ALL);
+                    gen_subi_instruction(program, stack.index_reg, stack.index_reg, 1);
+                    assignLabel(program, l_end);
+                }
+                free($2);
+                free($4);
+              }
 
 assign_statement : IDENTIFIER LSQUARE exp RSQUARE ASSIGN exp
             {
@@ -465,6 +530,38 @@ exp: NUMBER      { $$ = create_expression ($1, IMMEDIATE); }
 
                      /* free the memory associated with the IDENTIFIER */
                      free($1);
+   }
+   | ISEMPTY IDENTIFIER {
+    t_axe_variable *array = getVariable(program, $2);
+    if (!array->isArray) {
+        notifyError(AXE_SYNTAX_ERROR);
+    }
+    if (stack.id = NULL) {
+        stack.id = strdup($2);
+        stack.index_reg = gen_load_immediate(program, 0);
+    }
+    if (strcmp(stack.id, $2)) {
+        notifyError(AXE_SYNTAX_ERROR);
+    } else {
+        $$ = handle_binary_comparison(program, create_expression(stack.index_reg, REGISTER), create_expression(0, IMMEDIATE), _EQ_);
+    }
+    free($2);
+   }
+   | ISFULL IDENTIFIER {
+    t_axe_variable *array = getVariable(program, $2);
+    if (!array->isArray) {
+        notifyError(AXE_SYNTAX_ERROR);
+    }
+    if (stack.id == NULL) {
+        stack.id = strdup($2);
+        stack.index_reg = gen_load_immediate(program, 0);
+    }
+    if (strcmp(stack.id, $2)) {
+        notifyError(AXE_SYNTAX_ERROR);
+    } else {
+        $$ = handle_binary_comparison(program, create_expression(stack.index_reg, REGISTER),create_expression(array->arraySize, IMMEDIATE), _EQ_);
+    }
+    free($2);
    }
    | IDENTIFIER LSQUARE exp RSQUARE {
                      int reg;
