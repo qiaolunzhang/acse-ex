@@ -151,6 +151,7 @@ t_io_infos *file_infos;    /* input and output files used by the compiler */
 %left MINUS PLUS
 %left MUL_OP DIV_OP
 %right NOT
+%right REGCAST
 
 /*=========================================================================
                          BISON GRAMMAR
@@ -478,6 +479,35 @@ exp: NUMBER      { $$ = create_expression ($1, IMMEDIATE); }
 
                      /* free the memory associated with the IDENTIFIER */
                      free($1);
+   }
+   |REGCAST IDENTIFIER {
+    t_axe_variable *array = getVariable(program, $2);
+    if (!array->isArray) {
+        int location = get_symbol_location(program, $2, 0);
+        $$ = create_expression(location, REGISTER);
+    } else {
+        int index_reg = gen_load_immediate(program, array->arraySize-1);
+        int value_reg = gen_load_immediate(program, 0);
+        int tmp_reg = getNewRegister(program);
+        gen_subi_instruction(program, tmp_reg, index_reg, 31);
+        t_axe_label *s_label = newLabel(program);
+        gen_ble_instruction(program, s_label, 0);
+        gen_addi_instruction(program, index_reg, REG_0, 31);
+        assignLabel(program, s_label);
+
+        t_axe_label *end_label = newLabel(program); 
+        handle_binary_comparison(program, create_expression(index_reg, REGISTER), create_expression(0, IMMEDIATE), _LT_);
+        gen_bne_instruction(program, end_label, 0);
+        gen_shli_instruction(program, value_reg, value_reg, 1);
+        tmp_reg = loadArrayElement(program, $2, create_expression(index_reg, REGISTER));
+        gen_subi_instruction(program,index_reg, index_reg, 1);
+        gen_subi_instruction(program, tmp_reg, tmp_reg, 0);
+        gen_beq_instruction(program, s_label, 0);
+        gen_addi_instruction(program, value_reg, value_reg, 1);
+        gen_bt_instruction(program, s_label, 0);
+        assignLabel(program, end_label);
+        $$ = create_expression(value_reg, REGISTER);
+    }
    }
    | NOT_OP NUMBER   {  if ($2 == 0)
                            $$ = create_expression (1, IMMEDIATE);

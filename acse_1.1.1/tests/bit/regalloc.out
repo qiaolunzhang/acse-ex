@@ -1,0 +1,73 @@
+
+
+*************************
+REGISTER ALLOCATION INFOS
+*************************
+AVAILABLE REGISTERS : 31 
+USED VARIABLES : 30 
+-------------------------
+LIVE_INTERVALS:
+	LIVE_INTERVAL of T2 : [0, 2] 
+	LIVE_INTERVAL of T3 : [1, 2] 
+	LIVE_INTERVAL of T4 : [3, 6] 
+	LIVE_INTERVAL of T5 : [5, 6] 
+	LIVE_INTERVAL of T6 : [7, 10] 
+	LIVE_INTERVAL of T7 : [9, 10] 
+	LIVE_INTERVAL of T8 : [11, 13] 
+	LIVE_INTERVAL of T9 : [12, 13] 
+	LIVE_INTERVAL of T10 : [14, 17] 
+	LIVE_INTERVAL of T11 : [16, 17] 
+	LIVE_INTERVAL of T12 : [18, 34] 
+	LIVE_INTERVAL of T13 : [19, 35] 
+	LIVE_INTERVAL of T14 : [20, 20] 
+	LIVE_INTERVAL of T15 : [23, 24] 
+	LIVE_INTERVAL of T16 : [27, 29] 
+	LIVE_INTERVAL of T17 : [29, 31] 
+	LIVE_INTERVAL of T18 : [36, 52] 
+	LIVE_INTERVAL of T19 : [37, 53] 
+	LIVE_INTERVAL of T20 : [38, 38] 
+	LIVE_INTERVAL of T21 : [41, 42] 
+	LIVE_INTERVAL of T22 : [45, 47] 
+	LIVE_INTERVAL of T23 : [47, 49] 
+	LIVE_INTERVAL of T24 : [54, 70] 
+	LIVE_INTERVAL of T25 : [55, 71] 
+	LIVE_INTERVAL of T26 : [56, 56] 
+	LIVE_INTERVAL of T27 : [59, 60] 
+	LIVE_INTERVAL of T28 : [63, 65] 
+	LIVE_INTERVAL of T29 : [65, 67] 
+	LIVE_INTERVAL of T1 : [72, 74] 
+-------------------------
+BINDINGS : 
+VAR T0 will be assigned to register R0 
+VAR T1 will be assigned to register R2 
+VAR T2 will be assigned to register R1 
+VAR T3 will be assigned to register R2 
+VAR T4 will be assigned to register R1 
+VAR T5 will be assigned to register R2 
+VAR T6 will be assigned to register R1 
+VAR T7 will be assigned to register R2 
+VAR T8 will be assigned to register R1 
+VAR T9 will be assigned to register R2 
+VAR T10 will be assigned to register R1 
+VAR T11 will be assigned to register R2 
+VAR T12 will be assigned to register R1 
+VAR T13 will be assigned to register R2 
+VAR T14 will be assigned to register R3 
+VAR T15 will be assigned to register R3 
+VAR T16 will be assigned to register R3 
+VAR T17 will be assigned to register R4 
+VAR T18 will be assigned to register R2 
+VAR T19 will be assigned to register R1 
+VAR T20 will be assigned to register R4 
+VAR T21 will be assigned to register R4 
+VAR T22 will be assigned to register R4 
+VAR T23 will be assigned to register R3 
+VAR T24 will be assigned to register R1 
+VAR T25 will be assigned to register R2 
+VAR T26 will be assigned to register R3 
+VAR T27 will be assigned to register R3 
+VAR T28 will be assigned to register R3 
+VAR T29 will be assigned to register R4 
+VAR T30 will be assigned to register R0 
+*************************
+

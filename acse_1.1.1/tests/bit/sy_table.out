@@ -1,0 +1,10 @@
+--------------------------------
+          SYMBOL TABLE
+--------------------------------
+NUMBER OF SYMBOLS : 4 
+--------------------------------
+
+ID : v1	;; TYPE : INTEGER	;; LOCATION : [UNSPECIFIED] 
+ID : v2	;; TYPE : INTEGER	;; LOCATION : [UNSPECIFIED] 
+ID : v3	;; TYPE : INTEGER	;; LOCATION : [UNSPECIFIED] 
+ID : x	;; TYPE : INTEGER	;; LOCATION : R1 

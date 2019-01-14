@@ -1,0 +1,18 @@
+int v1[3];
+int v2[1];
+int v3[40];
+int x=10;
+
+v1[0] = 0;
+v1[1] = 1;
+v1[2] = 2;
+
+v2[0] = 1;
+
+v3[31] = 10;
+
+
+write((bit)v1);
+write((bit)v2);
+write((bit)v3);
+write((bit)x);
